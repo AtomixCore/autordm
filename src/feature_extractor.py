@@ -101,12 +101,10 @@ class FeatureExtractor:
             if key in file_names or key in class_names:
                 self.features["main_features"].append(feature)
 
-        # إزالة التكرار وترتيب المميزات
         self.features["main_features"] = sorted(list(set(self.features["main_features"]))) or ["General utilities"]
 
     def _find_entry_points(self) -> None:
         """Find or infer main script / entry file"""
-        # 1️⃣ إذا المستخدم مرر start_point
         if self.start_point:
             if os.path.exists(self.start_point):
                 self.features["entry_points"].append(self.start_point)
@@ -118,7 +116,6 @@ class FeatureExtractor:
                         self.features["entry_points"].append(path)
                         return
 
-        # 2️⃣ محاولة ذكية لاكتشاف main الحقيقي
         for path in self.parsed_data.keys():
             try:
                 with open(path, "r", encoding="utf-8") as f:
@@ -129,7 +126,6 @@ class FeatureExtractor:
             except Exception:
                 pass
 
-        # 3️⃣ fallback: detect functions named main
         for path, file_data in self.parsed_data.items():
             for f in file_data.get("functions", []):
                 if f["name"].lower() == "main":

@@ -16,7 +16,7 @@ class ModelEngine:
     Integrates with ModelLRUStore for memory-efficient model caching.
     """
 
-    def __init__(self, model_id: str = "microsoft/phi-2", device: str = "cpu", max_models: int = 2):
+    def __init__(self, model_id: str = "distilgpt2", device: str = "cpu", max_models: int = 2):
         self.model_id = model_id
         self.device = device
         self.store = ModelLRUStore(max_models=max_models)
@@ -30,12 +30,14 @@ class ModelEngine:
         if cached_model:
             return cached_model
 
-        tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         model = AutoModelForCausalLM.from_pretrained(self.model_id)
         pipe = pipeline(
             "text-generation",
             model=model,
-            tokenizer=tokenizer,
+            tokenizer=self.tokenizer,
             device_map="auto" if self.device != "cpu" else None
         )
 
@@ -51,7 +53,7 @@ class ModelEngine:
         """
         with self.lock:
             pipe = self._load_model()
-            output = pipe(prompt, max_new_tokens=max_length, do_sample=True, temperature=0.7)
+            output = pipe(prompt, max_new_tokens=max_length, do_sample=True, temperature=0.7, pad_token_id=self.tokenizer.pad_token_id)
             return output[0]["generated_text"].strip()
 
     def generate_readme(self, project_data: Dict[str, Any], base_path: str = ".") -> str:
